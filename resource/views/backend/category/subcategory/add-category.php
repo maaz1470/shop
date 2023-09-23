@@ -81,7 +81,7 @@
         formData.append('status',form[3].value)
         $.ajax({
             type: 'POST',
-            url: '/admin/sub-category/submitSubCategory',
+            url: '/admin/sub-sub-category/submitSubCategory',
             processData: false,
             contentType: false,
             data: formData,

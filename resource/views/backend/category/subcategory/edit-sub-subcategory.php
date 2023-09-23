@@ -11,7 +11,7 @@
             <div class="page-title-right">
                 <ol class="breadcrumb m-0">
                     <li class="breadcrumb-item"><a href="javascript: void(0);">Category</a></li>
-                    <li class="breadcrumb-item active">Add Sub Category</li>
+                    <li class="breadcrumb-item active">Edit Sub Category</li>
                 </ol>
             </div>
 
@@ -24,20 +24,27 @@
         <div class="card">
             <div class="card-body">
 
-                <h4 class="card-title">Add Sub Category</h4>
+                <h4 class="card-title">Edit Sub Category</h4>
 
                 <form action="" method="POST" id="form" enctype="multipart/form-data">
                     <div class="mb-3 row">
                         <label for="category_name" class="col-md-2 col-form-label">name</label>
                         <div class="col-md-10">
-                            <input class="form-control" type="text" placeholder="Category Name" id="category_name">
+                            <input value="<?= $var['subcategory']->name ?>" class="form-control" type="text" placeholder="Category Name" id="category_name">
+                        </div>
+                    </div>
+                    <div class="mb-3 row">
+                        <label for="url" class="col-md-2 col-form-label">URL</label>
+                        <div class="col-md-10">
+                            <input value="<?= $var['subcategory']->url ?>" class="form-control" type="text" placeholder="Category URL" id="url">
                         </div>
                     </div>
                     <div class="mb-3 row">
                         <label for="parent_category" class="col-md-2 col-form-label">Parent Category</label>
                         <div class="col-md-10">
                             <select name="parent_category" class="form-control" id="parent_category">
-                                <?php foreach($var['parents'] as $category): ?>
+                                <option value="0">Select Category</option>
+                                <?php foreach($var['categories'] as $category): ?>
                                     <option value="<?= $category->id ?>"><?= $category->name ?></option>
                                 <?php endforeach; ?>
                             </select>
@@ -46,7 +53,7 @@
                     <div class="mb-3 row">
                         <label for="description" class="col-md-2 col-form-label">Description</label>
                         <div class="col-md-10">
-                            <textarea class="form-control" rows="10" placeholder="Description" id="description"></textarea>
+                            <textarea class="form-control" rows="10" placeholder="Description" id="description"><?= $var['subcategory']->description ?></textarea>
                         </div>
                     </div>
                     <div class="mb-3 row">
@@ -76,12 +83,14 @@
         e.preventDefault();
         const formData = new FormData(form);
         formData.append('name',form[0].value)
-        formData.append('parent_id',form[1].value)
-        formData.append('description',form[2].value)
-        formData.append('status',form[3].value)
+        formData.append('url',form[1].value)
+        formData.append('parent_id',form[2].value)
+        formData.append('description',form[3].value)
+        formData.append('status',form[4].value)
+        formData.append('id',<?= $var['subcategory']->id ?>)
         $.ajax({
             type: 'POST',
-            url: '/admin/sub-category/submitSubCategory',
+            url: '/admin/sub-sub-category/updateSubCategory',
             processData: false,
             contentType: false,
             data: formData,
@@ -89,10 +98,6 @@
                 const response = JSON.parse(msg);
                 if(response.status === 200){
                     Swal.fire('Success',response.message,'success')
-                    form[0].value = '';
-                    form[1].value = 0;
-                    form[2].value = '';
-                    form[3].value= 1;
                 }else if(response.status === 401){
                     Swal.fire('Error',response.message,'error')
                 }else if(response.status === 403){
@@ -104,5 +109,6 @@
             }
         })
     })
+    form[2].value = <?= $var['subcategory']->parent_id ?>
 </script>
 <?= Config::inc('backend.inc.footer.footer') ?>

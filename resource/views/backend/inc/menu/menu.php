@@ -35,6 +35,14 @@
                     </ul>
                 </li>
 
+                <li>
+                    <a href="/admin/brands" class="waves-effect">
+                        <i class="mdi mdi-home-variant-outline"></i><span
+                            class="badge rounded-pill bg-primary float-end">3</span>
+                        <span>Brands</span>
+                    </a>
+                </li>
+
                 <li class="menu-title">Layouts</li>
 
                 <li>

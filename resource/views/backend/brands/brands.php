@@ -1,0 +1,134 @@
+<?php 
+    use App\Config;
+?>
+
+<?= Config::inc('backend.inc.header.header') ?>
+<div class="row">
+    <div class="col-12">
+        <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+            <h4 class="mb-sm-0">Categories</h4>
+
+            <div class="page-title-right">
+                <ol class="breadcrumb m-0">
+                    <li class="breadcrumb-item"><a href="javascript: void(0);">Category</a></li>
+                    <li class="breadcrumb-item active">All Categories</li>
+                </ol>
+            </div>
+
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <h4 class="card-title">All Sub Categories</h4>
+                    <a href="/admin/add-brand" class="btn btn-success">Add</a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-striped mb-0">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Name</th>
+                                <th>URL</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach($var['brands'] as $index => $brand): ?>
+                                <tr>
+                                    <th scope="row"><?= $index=$index+1 ?></th>
+                                    <td><?= $brand->name ?></td>
+                                    <td><?= $config->home_url . '/brand' . '/' . $brand->url ?></td>
+                                    <td><?= $brand->status === 1 ? "<button class='btn-sm btn btn-success'>Published</button>" : "<button class='btn-sm btn btn-danger'>Unpublished</button>" ?></td>
+                                    <td>
+                                        <div class="d-flex justify-content-center">
+                                            <?php if($brand->status == 1): ?>
+                                            <button onclick="changeStatus(this,0,<?= $brand->id ?>)" class="btn btn-success btn-sm mx-2"><i class="fa fa-arrow-circle-up" aria-hidden="true"></i></button>
+                                            <?php else: ?>
+                                            <button onclick="changeStatus(this,1,<?= $brand->id ?>)" class="btn btn-danger btn-sm mx-2"><i class="fa fa-arrow-circle-down" aria-hidden="true"></i></button>
+                                            <?php endif; ?>
+                                            <a href="/<?= $config->admin_url ?>/brand/edit/<?= $brand->id ?>" class="btn btn-info btn-sm mx-2"><i class="fas fa-edit    "></i></a>
+                                            <a href="javascript:void(0)" onclick="deleteCategory(this,<?= $brand->id ?>)" class="btn btn-danger btn-sm mx-2"><i class="fas fa-trash    "></i></a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    
+</div>
+
+<script>
+    const admin = '<?= $config->admin_url ?>';
+    function changeStatus(e,status,id){
+        $.ajax({
+            url: `/${admin}/brand/statusChange`,
+            type: 'POST',
+            data: {
+                status: status,
+                id: id
+            },
+            success: function(msg){
+                const response = JSON.parse(msg)
+                if(response.status === 200){
+                    Swal.fire('Success',response.message,'success')
+                    setTimeout(() => {
+                        window.location.reload();
+                    },1000)
+                }else if(response.status === 401){
+                    Swal.fire('Error',response.message,'error')
+                }else if(response.status === 403){
+                    Swal.fire('Error',response.message,'error');
+                }else{
+                    Swal.fire('Error','Something went wrong. Please try again.','error');
+                }
+            }
+        })
+    }
+
+    function deleteCategory(e, id){
+        Swal.fire(
+            {
+                title: 'Are you Sure?',
+                text: "You won't be able to revert this!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, delete it!'
+            }
+        ).then((result) => {
+            if(result.isConfirmed){
+                $.ajax({
+                type: 'POST',
+                url:'/<?= $config->admin_url ?>/brand/delete',
+                data: {
+                    id: id
+                },
+                success: function (msg){
+                    const response = JSON.parse(msg)
+                    if(response.status === 200){
+                        e.closest('tr').remove()
+                        Swal.fire('Success',response.message,'success')
+                    }else{
+                        Swal.fire('Error','Something went wrong. Please try again or contact your developer.')
+                    }
+                }
+            })
+            }
+            
+        })
+    }
+</script>
+
+
+<?= Config::inc('backend.inc.footer.footer') ?>

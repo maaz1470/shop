@@ -43,7 +43,6 @@
                         <label for="parent_category" class="col-md-2 col-form-label">Parent Category</label>
                         <div class="col-md-10">
                             <select name="parent_category" class="form-control" id="parent_category">
-                                <option value="0">Select Category</option>
                                 <?php foreach($var['categories'] as $category): ?>
                                     <option value="<?= $category->id ?>"><?= $category->name ?></option>
                                 <?php endforeach; ?>

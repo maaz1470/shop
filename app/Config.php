@@ -5,6 +5,10 @@
 class Config{
     private static $css = null;
     public static $adminName = null;
+
+    public static $admin_dir = 'admin';
+
+
     public static function home_url(){
         $http = isset($_SERVER['HTTPS']) ? 'https://' : 'http://';
 

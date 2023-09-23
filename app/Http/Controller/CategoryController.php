@@ -16,6 +16,7 @@ class CategoryController extends Controller{
     protected static function initialization(){
         $tableName = self::$tableName;
         $subcategory = self::$subCategoryTable;
+        $subsubcategory = self::$subSubCategoryTable;
         self::$table = DB::connection();
         $sql = "CREATE TABLE $tableName(
             id int AUTO_INCREMENT PRIMARY KEY,
@@ -47,6 +48,22 @@ class CategoryController extends Controller{
         if($check_subcategory->rowCount() == 0){
             $subcategory = self::$table->prepare($subcategory_sql);
             $subcategory->execute();
+        }
+
+        $sub_sub_category = "CREATE TABLE $subsubcategory(
+            id int AUTO_INCREMENT PRIMARY KEY,
+            name varchar(255) NOT NULL,
+            parent_id int NOT NULL DEFAULT 0,
+            url varchar(255) NOT NULL UNIQUE,
+            description text NULL,
+            status TINYINT NOT NULL DEFAULT 0
+        )";
+        $check_sscategory = self::$table->prepare("SHOW TABLES LIKE :tableName");
+        $check_sscategory->bindParam(':tableName',$subsubcategory,PDO::PARAM_STR);
+        $check_sscategory->execute();
+        if($check_sscategory->rowCount() == 0){
+            $sscategory = self::$table->prepare($sub_sub_category);
+            $sscategory->execute();
         }
         
     }
@@ -311,10 +328,14 @@ class CategoryController extends Controller{
         $subcategories->bindParam(':id',$id,PDO::PARAM_INT);
         $subcategories->execute();
         $subcategory = $subcategories->fetch(PDO::FETCH_OBJ);
-        $category = $table->prepare("SELECT * FROM $categoryTable WHERE status=1");
-        $category->execute();
-        $categories = $category->fetchAll(PDO::FETCH_OBJ);
-        return self::view('backend.category.edit-subcategory',compact('subcategory','categories'));
+        if($subcategory){
+            $category = $table->prepare("SELECT * FROM $categoryTable WHERE status=1");
+            $category->execute();
+            $categories = $category->fetchAll(PDO::FETCH_OBJ);
+            return self::view('backend.category.edit-subcategory',compact('subcategory','categories'));
+        }else{
+            self::redirect('/admin/sub-categories');
+        }
     }
 
     public static function updateSubCategory($request){
@@ -419,7 +440,181 @@ class CategoryController extends Controller{
 
     public static function subSubCategories(){
         CategoryController::class::initialization();
-        
+        $table = self::$table;
+        $tableName = self::$subSubCategoryTable;
+
+        $categories = $table->prepare("SELECT subcategories.id as category_id, subcategories.name as category_name, sub_sub_categories.* FROM $tableName LEFT JOIN subcategories ON subcategories.id=sub_sub_categories.parent_id");
+        $categories->execute();
+        $subcategories = $categories->fetchAll(PDO::FETCH_OBJ);
+        return self::view('backend.category.subcategory.categories',compact('subcategories'));
+    }
+
+    public static function addSubSubCategory(){
+        CategoryController::class::initialization();
+        $table = self::$table;
+        $subCategoryTable = self::$subCategoryTable;
+        $categories = $table->prepare("SELECT * FROM $subCategoryTable WHERE status=1");
+        $categories->execute();
+        $parents = $categories->fetchAll(PDO::FETCH_OBJ);
+        return self::view('backend.category.subcategory.add-category',compact('parents'));
+    }
+
+    public static function submitSubSubCategory($request){
+        CategoryController::class::initialization();
+        $table = self::$table;
+        $tableName = self::$subSubCategoryTable;
+
+        try{
+            if($request->name != '' && $request->parent_category != '' && $request->status != ''){
+                $name = $request->name;
+                $parent_category = $request->parent_category;
+                $description = $request->description;
+                $status = $request->status;
+                $url = self::createCategoryUrl($name,$tableName);
+                $subcategory = $table->prepare("INSERT INTO $tableName(name,parent_id,url,description,status) VALUES(:name,:parent_id,:url,:description,:status)");
+                $subcategory->bindParam(':name',$name,PDO::PARAM_STR);
+                $subcategory->bindParam(':parent_id',$parent_category,PDO::PARAM_INT);
+                $subcategory->bindParam(':url',$url,PDO::PARAM_STR);
+                $subcategory->bindParam(':description',$description,PDO::PARAM_STR);
+                $subcategory->bindParam(':status',$status,PDO::PARAM_INT);
+                if($subcategory->execute()){
+                    echo json_encode([
+                        'status'    => 200,
+                        'message'   => 'Category Added Successfully'
+                    ]);
+                    exit();
+                }else{
+                    throw new Exception("Something went wrong. Please try again.");
+                }
+            }else{
+                throw new Exception('All Field is Required');
+            }
+        }catch(Exception $e){
+            echo json_encode([
+                'status'    => 403,
+                'message'   => $e->getMessage()
+            ]);
+            exit();
+        }
+
+    }
+
+    public static function subSubCategoryStatusChange($request){
+        CategoryController::class::initialization();
+        $table = self::$table;
+        $tableName = self::$subSubCategoryTable;
+        try{
+            $subCategory = $table->prepare("UPDATE $tableName SET status=:status WHERE id=:id");
+            $subCategory->bindParam(':status',$request->status,PDO::PARAM_INT);
+            $subCategory->bindParam(':id',$request->id,PDO::PARAM_INT);
+            if($subCategory->execute()){
+                echo json_encode([
+                    'status'    => 200,
+                    'message'   => "Subcategory update successfully"
+                ]);
+                exit();
+            }else{
+                throw new Exception("Something went wrong. Please try again.");
+            }
+            
+        }catch(Exception $e){
+            echo json_encode([
+                'status'    => 401,
+                'message'   => $e->getMessage()
+            ]);
+            exit();
+        }
+    }
+
+    public static function deleteSubSubCategory($request){
+        CategoryController::class::initialization();
+        $table = self::$table;
+        $tableName = self::$subSubCategoryTable;
+
+        try{
+            $delete = $table->prepare("DELETE FROM $tableName WHERE id=:id");
+            $delete->bindParam(':id',$request->id,PDO::PARAM_INT);
+            if($delete->execute()){
+                echo json_encode([
+                    'status'    => 200,
+                    'message'   => "Subcategory Delete successfully"
+                ]);
+                exit();
+            }
+        }catch(Exception $e){
+            echo json_encode([
+                'status'    => 401,
+                'message'   => $e->getMessage()
+            ]);
+            exit();
+        }
+    }
+
+    public static function editSubSubCategory($id){
+        CategoryController::class::initialization();
+        $tableName = self::$subSubCategoryTable;
+        $table = self::$table;
+        $categoryTable = self::$subCategoryTable;
+        $subcategories = $table->prepare("SELECT * FROM $tableName WHERE id=:id");
+        $subcategories->bindParam(':id',$id,PDO::PARAM_INT);
+        $subcategories->execute();
+        $subcategory = $subcategories->fetch(PDO::FETCH_OBJ);
+        if($subcategory){
+            $category = $table->prepare("SELECT * FROM $categoryTable WHERE status=1");
+            $category->execute();
+            $categories = $category->fetchAll(PDO::FETCH_OBJ);
+            return self::view('backend.category.subcategory.edit-sub-subcategory',compact('subcategory','categories'));
+        }else{
+            self::redirect('/admin/sub-sub-categories');
+        }
+    }
+
+    public static function updateSubSubCategory($request){
+        CategoryController::class::initialization();
+        $tableName = self::$subSubCategoryTable;
+        $table = self::$table;
+        try{
+            if($request->name != '' && $request->url != '' && $request->description != '' && $request->parent_id != '' && $request->status != ''){
+                $name = $request->name;
+                $check_url = $table->prepare("SELECT id,url FROM $tableName WHERE id=:id");
+                $check_url->bindParam(':id',$request->id,PDO::PARAM_INT);
+                $check_url->execute();
+                $urlData = $check_url->fetch(PDO::FETCH_OBJ);
+                if($urlData->url != $request->url){
+                    $url = self::createCategoryUrl($request->url,$table);
+                }else{
+                    $url = $request->url;
+                }
+                
+                $description = $request->description;
+                $parent_id = $request->parent_id;
+                $status = $request->status;
+                $category = $table->prepare("UPDATE $tableName SET name=:name, url=:url, description=:description, parent_id=:parent_id, status=:status WHERE id=:id");
+                $category->bindParam(':name',$name,PDO::PARAM_STR);
+                $category->bindParam(':url',$url,PDO::PARAM_STR);
+                $category->bindParam(':description',$description,PDO::PARAM_STR);
+                $category->bindParam(':parent_id',$parent_id,PDO::PARAM_INT);
+                $category->bindParam(':status',$status,PDO::PARAM_INT);
+                $category->bindParam(':id',$request->id,PDO::PARAM_INT);
+                if($category->execute()){
+                    echo json_encode([
+                        'status'    => 200,
+                        'message'   => 'Subcategory Update Successfully'
+                    ]);
+                    exit();
+                }else{
+                    throw new Exception("Something went wrong. Please try again.");
+                }
+            }else{
+                throw new Exception("All Field is Required.");
+            }
+        }catch(Exception $e){
+            echo json_encode([
+                'status'    => 401,
+                'message'   => $e->getMessage()
+            ]);
+            exit();
+        }
     }
 
 }
